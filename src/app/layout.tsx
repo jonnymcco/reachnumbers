@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Providers } from "@/components/Providers";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "Reach: The Numbers Puzzle",
-  description:
-    "A daily and casual numbers puzzle: combine numbers with +, -, x and / to reach the target.",
+  description: "Combine numbers with +, -, x and / to reach the target.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -19,10 +18,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         }}
       >
-        <Providers>
+        <ThemeProvider>
           <Navbar />
           <main className="flex-1 flex flex-col">{children}</main>
-        </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

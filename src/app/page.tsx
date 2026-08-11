@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useState } from "react";
 import { GameBoard } from "@/components/GameBoard";
 import { SolutionDisplay } from "@/components/SolutionDisplay";
-import { useAuthModal } from "@/components/AuthModalContext";
 import { solve } from "@/lib/game/solver";
 import type { Step } from "@/lib/game/engine";
-import { MAX_LARGE_NUMBERS } from "@/lib/game/generate";
-import { getGuestGamesPlayed, incrementGuestGamesPlayed, GUEST_GAME_LIMIT } from "@/lib/guestTracker";
+import { generateCasualPuzzle, MAX_LARGE_NUMBERS } from "@/lib/game/generate";
 
 type Phase = "setup" | "playing" | "result";
 
@@ -22,60 +19,25 @@ interface Result {
   score: number;
   playerSteps: Step[];
   solutionSteps: Step[];
-  saved: boolean;
 }
 
 export default function JustPlayPage() {
-  const { status } = useSession();
-  const { openModal } = useAuthModal();
-
   const [phase, setPhase] = useState<Phase>("setup");
   const [numLarge, setNumLarge] = useState(2);
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [guestGamesPlayed, setGuestGamesPlayed] = useState(0);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only available after mount
-    setGuestGamesPlayed(getGuestGamesPlayed());
-  }, []);
-
-  const startGame = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/game/casual?numLarge=${numLarge}`);
-      const data = await res.json();
-      setPuzzle(data);
-      setResult(null);
-      setPhase("playing");
-    } finally {
-      setLoading(false);
-    }
+  const startGame = () => {
+    setPuzzle(generateCasualPuzzle(numLarge));
+    setResult(null);
+    setPhase("playing");
   };
 
-  const handleSubmit = async ({ score, steps }: { score: number; steps: Step[] }) => {
+  const handleSubmit = ({ score, steps }: { score: number; steps: Step[] }) => {
     if (!puzzle) return;
     const best = solve(puzzle.numbers, puzzle.target);
     const solutionSteps = best?.value === puzzle.target ? best.steps : [];
-
-    let saved = false;
-    if (status === "authenticated") {
-      const res = await fetch("/api/game/casual/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ score, target: puzzle.target, numbers: puzzle.numbers }),
-      });
-      saved = res.ok;
-    } else {
-      const played = incrementGuestGamesPlayed();
-      setGuestGamesPlayed(played);
-      if (played >= GUEST_GAME_LIMIT) {
-        setTimeout(() => openModal("Sign up to save your scores to the global leaderboard!"), 800);
-      }
-    }
-
-    setResult({ score, playerSteps: steps, solutionSteps, saved });
+    setResult({ score, playerSteps: steps, solutionSteps });
     setPhase("result");
   };
 
@@ -90,7 +52,7 @@ export default function JustPlayPage() {
       {phase === "setup" && (
         <div className="w-full max-w-sm flex flex-col items-center gap-6 text-center">
           <div>
-            <h1 className="text-3xl font-black text-foreground">Just Play!</h1>
+            <h1 className="text-3xl font-black text-foreground">Reach</h1>
             <p className="text-foreground-muted mt-2">
               Pick a target, combine numbers with +, −, ×, ÷ and get as close as you can. No time
               limit.
@@ -119,19 +81,12 @@ export default function JustPlayPage() {
             </div>
           </div>
 
-          {status !== "authenticated" && guestGamesPlayed > 0 && (
-            <p className="text-xs text-foreground-muted">
-              Guest games played: {guestGamesPlayed} / {GUEST_GAME_LIMIT}
-            </p>
-          )}
-
           <button
             type="button"
             onClick={startGame}
-            disabled={loading}
-            className="rounded-full px-8 py-3 font-semibold bg-accent text-accent-foreground hover:opacity-90 disabled:opacity-60 transition-opacity cursor-pointer"
+            className="rounded-full px-8 py-3 font-semibold bg-accent text-accent-foreground hover:opacity-90 transition-opacity cursor-pointer"
           >
-            {loading ? "Generating…" : "Start Puzzle"}
+            Start Puzzle
           </button>
         </div>
       )}
