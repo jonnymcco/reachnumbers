@@ -9,17 +9,41 @@ leaderboards.
 
 - [Next.js](https://nextjs.org) (App Router) + TypeScript + Tailwind CSS
 - [Auth.js / NextAuth v5](https://authjs.dev) (credentials login, JWT sessions)
-- [Prisma](https://www.prisma.io) + SQLite
+- [Prisma](https://www.prisma.io) + PostgreSQL
 - [next-themes](https://github.com/pacocoursey/next-themes) for light/dark mode
 
 ## Getting started
 
+You need a Postgres database to point at — a free [Neon](https://neon.tech) or
+[Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres) database works well,
+or run one locally (`createdb reachnumbers` with a local Postgres install, or
+`docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:16`).
+
 ```bash
 npm install                # also runs `prisma generate` via postinstall
-cp .env.example .env       # set your own AUTH_SECRET for anything beyond local dev
-npm run db:migrate         # creates prisma/dev.db and applies the schema
+cp .env.example .env       # fill in DATABASE_URL and a real AUTH_SECRET
+npm run db:migrate         # applies the schema to your database
 npm run dev                # http://localhost:3000
 ```
+
+## Deploying to Vercel
+
+1. **Push this repo to GitHub** (already done if you're reading this from the repo).
+2. **Import the project in Vercel**: [vercel.com/new](https://vercel.com/new) → select
+   the `reachnumbers` GitHub repo → pick the branch you want to deploy (doesn't have to
+   be `main` — Vercel can deploy any branch, either as a Preview or by changing the
+   Production branch in project settings).
+3. **Add a Postgres database**: in the new project, go to the **Storage** tab → *Create
+   Database* → Postgres. This provisions a Neon-backed Postgres and automatically sets
+   the `DATABASE_URL` env var for you — no separate account needed.
+4. **Add the `AUTH_SECRET` env var**: Project Settings → Environment Variables → add
+   `AUTH_SECRET` with a long random value (e.g. `openssl rand -base64 32`).
+5. **Deploy.** The build script (`prisma migrate deploy && next build`) applies the
+   schema to your new database automatically on every deploy, so there's no separate
+   migration step to run by hand.
+
+That's it — Vercel auto-detects Next.js, so no custom build/output settings are needed
+beyond the two env vars above.
 
 ## How the puzzle works
 
